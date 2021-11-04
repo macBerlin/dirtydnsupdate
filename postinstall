@@ -1,0 +1,14 @@
+#!/bin/sh
+## postinstall script for dirtydns
+
+LogFile="/private/var/log/DNS.log"
+
+touch $LogFile  >>/dev/null 2>&1 
+# change permissions because otherwise the agent can not write because the service run as a launchagent
+chmod 777 $LogFile  
+
+currentuser=`stat -f "%Su" /dev/console`
+userid=$(id -u ${currentuser})
+
+launchctl bootout gui/${userid} /Library/LaunchAgents/de.company.dirtydns.plist >>/dev/null 2>&1 
+launchctl bootstrap gui/${userid} /Library/LaunchAgents/de.company.dirtydns.plist 
