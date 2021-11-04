@@ -15,8 +15,22 @@ writeToLog(){
 
 }
 
-ping -q -t2 -c1 $REALM  >>/dev/null 2>&1 
-if [ $? -eq 0 ]; then 
+## get all DNS Server for Domain
+DNS_SERVER=$(dig corp.ad.zalando.net +short)
+
+for dns_ip in ${DNS_SERVER//\\n/
+}
+do
+   	ping -q -t2 -c1 $dns_ip  >>/dev/null 2>&1 
+	if [ $? -eq 0 ]; then 
+		writeToLog "DNS Server ${dns_ip} is online.."
+		ACTIVE_DNS_SERVER=${dns_ip}	
+		break	
+	fi
+done
+
+
+if [ ! -z "$ACTIVE_DNS_SERVER" ]; then 
 	writeToLog "DNSupdate started.."
 else
 	writeToLog "No company network active exiting."
