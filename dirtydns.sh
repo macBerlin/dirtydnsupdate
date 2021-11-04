@@ -85,7 +85,9 @@ done
 
 writeToLog "Kerberos Ticket is valid."
 
-getInterfaces=$(netstat -f inet -rn |  cut -c52-56 | grep -v "Netif" | sort -u | grep -v "lo0" | grep -v -e '^$' | tr -d " ")
+##macos 11
+##getInterfaces=$(netstat -f inet -rn |  cut -c52-56 | grep -v "Netif" | sort -u | grep -v "lo0" | grep -v -e '^$' | tr -d " ")
+getInterfaces=$(netstat -f inet -rn | awk  {'print $4'}| grep -v "Netif" | sort -u | grep -v "lo0" | grep -v -e '^$' | tr -d " ")
 countInterfaces=$(echo "$getInterfaces" | wc -l | tr -d " ")
 
 getFirstDNSServer=$(dig $REALM +short | head -n1)
@@ -104,7 +106,7 @@ if [ $countInterfaces -gt 0 ]; then
 		    writeToLog "Check interface: $Interface"
 		    ipaddr=`/sbin/ifconfig $Interface | awk '/inet / {print$2}'`
 
-			ping -S $ipaddr -t1 -q -c1 $REALM  >>/dev/null 2>&1		 
+			ping -S $ipaddr -t1 -q -c1 ${ACTIVE_DNS_SERVER}  >>/dev/null 2>&1		 
 			if [ $? -eq 0 ]; then 
 		    	writeToLog "company network is reachable. Update DNS on Interface $Interface"
 		    	DNSUpdateInterface=$(echo $Interface)
@@ -117,16 +119,16 @@ fi
 
 computernm=`scutil --get ComputerName`
 ipaddr=`/sbin/ifconfig $DNSUpdateInterface | awk '/inet / {print$2}'`
-writeToLog "Update DNS with record $computernm.$REALM A $ipaddr "
+DNS_SERVER_FQDN=$(dig @${ACTIVE_DNS_SERVER} +short -x ${ACTIVE_DNS_SERVER})
+writeToLog "Update DNS Server ${DNS_SERVER_FQDN} with record $computernm.$REALM A $ipaddr "
 #In my case the object in AD must be end with a $ sign.
 adcomputernm="$computernm$"
 
 # make double sure that temp file isn't there
 rm -rfv $workfile > /dev/null	
 
-# compose nsupdate command
-# uncomment the first line to specify a DNS server otherwise the machines default will be used. 
-#echo server specificDNSserver.ourdomain.net >> $TMPDIR/nsupdate
+# compose nsupdate command in file
+echo server ${DNS_SERVER_FQDN} >> ${workfile}
 echo "update delete $computernm.$REALM A" >> ${workfile}
 echo "update add $computernm.$REALM $recordTTL A $ipaddr" >> ${workfile}
 echo send >> ${workfile}
