@@ -16,7 +16,7 @@ writeToLog(){
 }
 
 ## get all DNS Server for Domain
-DNS_SERVER=$(dig corp.ad.zalando.net +short)
+DNS_SERVER=$(dig ${REALM} +short)
 
 for dns_ip in ${DNS_SERVER//\\n/
 }
